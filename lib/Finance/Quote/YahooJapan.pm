@@ -178,11 +178,11 @@ sub _scrape {
     if (defined $container) {
         # process each <article> that represents a single item
         for my $e ($container->find('article')) {
-            my $sym = $e->look_down('class', qr/_2QwB$/)->as_text;
+            my $sym = $e->look_down('class', qr/\bSearchItem__supplement__q1T3\b/)->as_text;
             my ($date, $time) = _parse_datetime($e->find('time')->as_text);
             my $quote = {
                 name  => $e->find('h2')->as_text,
-                price => $e->look_down('class', qr/_3rXW$/)->as_text,
+                price => $e->look_down('class', qr/\bSearchItem__price__HfqD\b/)->as_text,
                 date  => $date,
                 time  => $time
             };
