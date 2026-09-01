@@ -6,7 +6,7 @@ use warnings;
 use HTML::TreeBuilder 5 -weak;
 use URI::Escape;
 
-our $VERSION = 'v1.2.3';
+our $VERSION = 'v1.2.4';
 
 # Maximum number of symbols that a search query can contain.
 my $n_symbols_per_query = 4;
@@ -24,8 +24,9 @@ sub methods {
 sub labels {
     return (
         yahoo_japan => [
-            'method', 'success',  'symbol', 'name', 'date', 'isodate',
-            'time',   'currency', 'price',  'errormsg'
+            'method', 'success', 'symbol', 'name',
+            'date',   'isodate', 'time',   'currency',
+            'price',  'errormsg'
         ]
     );
 }
@@ -43,7 +44,7 @@ sub yahoo_japan {
     # initial trial loop: ignore page links.
     while ( my @syms = splice @symbols, 0, $n_symbols_per_query ) {
         my $url = $url_base . '?query=' . join '+',
-          map { uri_escape($_) } @syms;
+            map { uri_escape($_) } @syms;
 
         # trick to avoid single-item pages
         $url .= '+%5EDJI' if ( @syms < 3 && @syms < $n_symbols_per_query );
@@ -82,12 +83,12 @@ sub yahoo_japan {
     while ( my @syms = splice @retry_later, 0, $n_symbols_per_query ) {
         my %quotes = ();
         my $url    = $url_base . '?query=' . join '+',
-          map { uri_escape($_) } @syms;
+            map { uri_escape($_) } @syms;
 
         # trick to avoid single-item pages
         $url .= '+%5EDJI' if ( @syms < 3 && @syms < $n_symbols_per_query );
 
-        for ( my $page = 1 ; $page <= $n_pages_per_query ; $page++ ) {
+        for ( my $page = 1; $page <= $n_pages_per_query; $page++ ) {
             select undef, undef, undef, $delay_per_request;
             my $reply = $ua->get( $url . '&page=' . $page );
             if ( $reply->is_success ) {
@@ -103,8 +104,9 @@ sub yahoo_japan {
         for my $sym (@syms) {
             next if ( $info{ $sym, 'success' } );
             if ( exists $quotes{$sym} ) {
-                %info =
-                  ( %info, _convert_quote( $quoter, $sym, $quotes{$sym} ) );
+                %info = (
+                    %info, _convert_quote( $quoter, $sym, $quotes{$sym} )
+                );
             }
             else {
                 $info{ $sym, 'success' }  = 0;
@@ -195,15 +197,15 @@ sub _scrape {
 
         # process each <article> that represents a single item
         for my $e ( $container->find('article') ) {
-            my $sym =
-              $e->look_down( 'class', qr/\bSearchItem__supplement__q1T3\b/ )
-              ->as_text;
-            my ( $date, $time ) = _parse_datetime( $e->find('time')->as_text );
+            my $sym = $e->look_down( 'class',
+                qr/\bSearchItem__supplement__q1T3\b/ )->as_text;
+            my ( $date, $time )
+                = _parse_datetime( $e->find('time')->as_text );
             my $quote = {
                 name  => $e->find('h2')->as_text,
                 price =>
-                  $e->look_down( 'class', qr/\bSearchItem__price__HfqD\b/ )
-                  ->as_text,
+                    $e->look_down( 'class', qr/\bSearchItem__price__HfqD\b/ )
+                    ->as_text,
                 date => $date,
                 time => $time
             };
@@ -212,12 +214,12 @@ sub _scrape {
             # for a stock code, register a duplicate quote with market letter
             if ( $sym =~ /^[0-9A-Z]{2}[0-9][0-9A-Z][0-9]?$/ ) {
                 my $pat = qr/(?:quote\/|code=)($sym\.[A-Z])/;
-                $e->look_down( '_tag', 'a', 'href', $pat )->attr('href') =~
-                  $pat;
+                $e->look_down( '_tag', 'a', 'href', $pat )->attr('href')
+                    =~ $pat;
                 $quotes{ lc $1 } = $quote if ( defined $1 );
             }
 
-           # XXX destructive when a stock quote from other market already exists
+         # XXX destructive when a stock quote from other market already exists
             $quotes{$sym} = $quote;
         }
     }
@@ -242,7 +244,8 @@ sub _parse_datetime($;) {
         # MM/DD
         ( $mon, $mday ) = ( $1, $2 );
         $year--
-          if ( $now[4] + 1 < $mon );    # MM may point last December in January.
+            if ( $now[4] + 1 < $mon )
+            ;    # MM may point last December in January.
     }
 
     my $date = sprintf '%04d-%02d-%02d', $year, $mon, $mday;
